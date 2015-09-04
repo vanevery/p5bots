@@ -18,7 +18,6 @@
  *                start the connect server and leave it running; the tests
  *                can then be opened at localhost:9001/test/test.html
  *
- *  grunt jsdoc - Generate documentation from inline code.
  *
  *  grunt watch:main  - This watches the source for changes and rebuilds on
  *                      every file change.
@@ -50,7 +49,10 @@ module.exports = function(grunt) {
         reporter: require('jscs-stylish').path
       },
       build: {
-        src: ['Gruntfile.js']
+        src: [
+        'Gruntfile.js',
+        'build/**/*.js'
+        ]
       },
       source: {
         src: [
@@ -70,7 +72,10 @@ module.exports = function(grunt) {
         options: {
           jshintrc: '.jshintrc'
         },
-        src: ['Gruntfile.js']
+        src: [
+        'Gruntfile.js',
+        'build/**/*.js'
+        ]
       },
       source: {
         options: {
@@ -89,20 +94,6 @@ module.exports = function(grunt) {
       }
     },
 
-    // Set up jsdoc task to generate documentation
-    jsdoc : {
-      dist : {
-        src: ['src/client/app.js',
-              'src/client/lib/*.js',
-              'src/p5bots-server/app.js',
-              'src/p5bots-server/lib/*.js',
-              'src/README.md'],
-        options: {
-          destination: 'doc'
-        }
-      }
-    },
-
     // Set up the watch task, used for live-reloading during development.
     watch: {
       // Watch the codebase for changes
@@ -118,7 +109,6 @@ module.exports = function(grunt) {
     // Set up the mocha task, used for the automated browser-side tests.
     mocha: {
       test: {
-        src: ['test/**/*.html'],
         options: {
           urls: [
             'http://localhost:9001/test/test.html',
@@ -135,26 +125,11 @@ module.exports = function(grunt) {
     // Set up the mocha-chai-sinon task, used for the automated server-side tests.
     'mocha-chai-sinon': {
       build: {
-        src: ['test/unit/server/app.js'],
+        src: ['test/unit/p5bots-server/app.js'],
         options: {
           ui: 'tdd',
           reporter: reporter
         }
-      }
-    },
-
-    // Build p5bots client source into a single, UMD-wrapped file
-    browserify: {
-      p5: {
-        options: {
-          transform: ['brfs'],
-          browserifyOptions: {
-            standalone: 'p5bots'
-          },
-          banner: '/*! p5bots.js v<%= pkg.version %> <%= grunt.template.today("mmmm dd, yyyy") %> */'
-        },
-        src: 'src/client/app.js',
-        dest: 'lib/p5bots.js'
       }
     },
 
@@ -202,10 +177,9 @@ module.exports = function(grunt) {
   });
 
   // Load the external libraries used.
-  grunt.loadNpmTasks('grunt-browserify');
+  grunt.loadTasks('build/tasks');
   grunt.loadNpmTasks('grunt-jscs');
   grunt.loadNpmTasks('grunt-contrib-jshint');
-  grunt.loadNpmTasks('grunt-jsdoc');
   grunt.loadNpmTasks('grunt-contrib-watch');
   grunt.loadNpmTasks('grunt-mocha');
   grunt.loadNpmTasks('grunt-mocha-chai-sinon');
@@ -214,7 +188,7 @@ module.exports = function(grunt) {
   grunt.loadNpmTasks('grunt-newer');
 
   // Create the multitasks.
-  grunt.registerTask('build', ['browserify', 'uglify', 'jsdoc']);
+  grunt.registerTask('build', ['browserify', 'uglify']);
   grunt.registerTask('test', ['jshint', 'jscs', 'build', 'connect', 'mocha', 'mocha-chai-sinon']);
-  grunt.registerTask('default', ['test', 'build']);
+  grunt.registerTask('default', ['test']);
 };

@@ -1,5 +1,15 @@
 var utils = require('./socket_utils.js');
 
+/**
+ * Adds temp sensor–specific methods to pin object. Called via special.
+ * Always sets pin direction to output.
+ *
+ * Unlike with other pins, primary methods defined within read callbacks.
+ * (see socket_utils.js)
+ *
+ * @param  {Object} pin
+ * @return {Object} mutated pin
+ */
 function temp(pin) {
   // Unpack pin object, pluck data & reassign pin num to pin.pin for generation
   var settings = pin.pin;
@@ -14,9 +24,9 @@ function temp(pin) {
 
   var tempErr = 'Remember to call read before try to get a temp value.';
   // Actual values set in read callback; see socket_utils, constructFuncs
-  this.C = function() { throw new Error(tempErr); };
-  this.F = function() { throw new Error(tempErr); };
-  this.K = function() { throw new Error(tempErr); };
+  pin.C = function() { throw new Error(tempErr); };
+  pin.F = function() { throw new Error(tempErr); };
+  pin.K = function() { throw new Error(tempErr); };
 
   return pin;
 }

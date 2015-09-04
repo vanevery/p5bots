@@ -1,10 +1,17 @@
 var utils = require('./socket_utils.js');
 
+/**
+ * Adds servo-specific methods to pin object. Called via special.
+ * Sets default range to 0 to 45. Overwrites default write.
+ *
+ * @param  {Object} pin
+ * @return {Object} mutated pin
+ */
 function servo(pin) {
   utils.dispatch(utils.pinInit(pin.pin, pin.mode, pin.direction));
   utils.constructFuncs(pin);
-  this.rangeMin = 0;
-  this.rangeMax = 45;
+  pin.rangeMin = 0;
+  pin.rangeMax = 45;
 
   // Overwrite defualt write returned from construct funcs with servoWrite
   pin.write = function(arg) {
