@@ -56,9 +56,9 @@ module.exports = function(grunt) {
       },
       source: {
         src: [
-        'src/client/**/*.js',
-        'src/p5bots-server/app.js',
-        'src/p5bots-server/lib/*.js',
+        //'src/client/**/*.js',
+        'src/p5bots-server/app.js'
+        //'src/p5bots-server/lib/*.js',
         ]
       },
       test: {

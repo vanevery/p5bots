@@ -1,63 +1,87 @@
 var sp = require('serialport'),
     SerialPort = sp.SerialPort,
-    serialport,
-    serialQ = [];
-
-function serialDispatch(fn, args){
-  serialport.isOpen ?
-      fn.apply(null, args)
-    : serialQ.push({ func: fn, args: args });
-}
+    serialport;
 
 // Kicks off the event queue on success
 exports.init = function serialInit(socket) {
-  socket.on('serial init', function(data) {
-    serialport = new SerialPort(data.path, data.config);
-    serialport.on('open', function(){
-      // call eventQ functions
-      serialQ.forEach(function(el) {
-        el.func.apply(null, el.args);
-      });
-    });
-  });
-};
+  socket.on('message', function(inmessage) {
+    var message = JSON.parse(inmessage);
+    console.log(JSON.stringify(message));
 
-exports.read = function serialRead(socket) {
-  socket.on('serial read', function(){
-    function sRead(){
-      serialport.on('data', function(data) {
-        socket.emit('serial read return', { data: data });
-      });
+    if (typeof message !== 'undefined' &&
+        typeof message.method !== 'undefined' &&
+        typeof message.data !== 'undefined') {
+        
+        if (message.method === 'echo') {
+          console.log('echo ' + message.data);
+          socket.emit('message',{method:'echo', data:message.data});
+        } else if (message.method === 'list') {
+          SerialPort.list(function (err, ports) {
+            var portNames = [];
+            ports.forEach(function(port) {
+              console.log(port.comName);
+              portNames.push(port.comName);
+              //console.log(port.pnpId);
+              //console.log(port.manufacturer);
+            });
+
+            socket.emit('message',{method:'list', data:portNames});
+          });
+        } else if (message.method === 'openserial') {
+          console.log('openserial ' + message.method);
+            
+          try {
+            serialport = new SerialPort(message.data.serialport, 
+              message.data.serialoptions);
+            serialport.open(function (error) {
+              if ( error ) {
+                  console.log(error);
+                  socket.emit('mesage',{method:'error', data:error});
+              } else {
+                  console.log('open');
+                  socket.emit('message',{method:'openserial',data:{}});
+
+                serialport.on('data', function(data) {
+                  console.log('data received: ' + data);
+                  socket.emit('message',{method:'data',data:data});
+                });
+
+                serialport.on('close', function(data) {
+                  console.log('close ' + data);
+                  socket.emit('message',{method: 'close', data:data});
+                  // Do we want to close the connection?
+                });
+
+                serialport.on('error', function(data) {
+                  console.log('error ' + data);
+                  socket.emit('message',{method: 'error', data:data});
+                }); 
+              }
+              });         
+          } catch (er) {
+              console.log(er);
+              socket.emit('message',{method: 'error', data:er});
+          }
+          //ws.send() // Send confirmation back
+        } else if (message.method === 'write') {
+          console.log('write ' + message.data);
+          serialport.write(message.data);
+        } else if (message.method === 'close') {
+          console.log('close');
+          if (serialport.isOpen()) {
+            serialport.close(
+              function(error) {
+                console.log('Close Error: ' + error);
+                socket.emit('message',{method:'error', data:error});
+              }
+            );
+            socket.emit('message',{method: 'close', data:{}});
+          }
+        }
     }
-    serialDispatch(sRead);
+    else {
+      console.log('Not a message I understand: ' + JSON.stringify(message));
+    }    
   });
 };
 
-exports.write = function serialWrite(socket) {
-  socket.on('serial write', function(arg){
-    function sWrite() {
-      serialport.write(arg, function(err, results) {
-        if (err) { console.log('Serial write error', err); }
-        socket.emit('serial write return', { results: results });
-      });
-    }
-    serialDispatch(sWrite, arg);
-  });
-};
-
-// Skips the event queue
-exports.list = function serialList(socket) {
-  socket.on('serial list', function(){
-    sp.list(function (err, ports) {
-      var portsArr = [];
-      ports.forEach(function(port) {
-        var inner = {};
-        inner.comName = port.comName;
-        inner.pnpId = port.pnpId;
-        inner.manufacturer = port.manufacturer;
-        portsArr.push(inner);
-      });
-      socket.emit('serial list return', { ports: portsArr });
-    });
-  });
-};
